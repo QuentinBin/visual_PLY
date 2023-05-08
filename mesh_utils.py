@@ -2,14 +2,14 @@
 Description: utils used for mesh
 Author: Bin Peng
 Date: 2023-05-08 14:37:16
-LastEditTime: 2023-05-08 15:10:55
+LastEditTime: 2023-05-09 00:18:33
 '''
 from OpenGL.GL import *
 
 import Mesh
 
 
-def drawMesh(mesh:Mesh.Mesh):
+def draw_Mesh(mesh:Mesh.Mesh):
 	'''
 	params
 	------
@@ -45,4 +45,22 @@ def drawMesh(mesh:Mesh.Mesh):
 			glEnd()
 			mode = None
 	if mode:
-		glEnable # end final gl
+		glEnd() # end final gl
+
+
+def draw_MeshGrid(mesh:Mesh.Mesh):
+	'''
+	params
+	------
+	Mesh:class Mesh
+	'''
+	for face in mesh.faces:
+		face:Mesh.Face
+		num_vertices = len(face.vertices())
+		if num_vertices >= 3:
+			glBegin(GL_LINE_LOOP)
+			for i in range(num_vertices):
+				vertex_index = face.vertices()[i]
+				# print(mesh.get_vertex(vertex_index).coords())
+				glVertex3d(*(mesh.get_vertex(vertex_index).coords()))
+			glEnd()

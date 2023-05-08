@@ -2,7 +2,7 @@
 Description: 
 Author: Bin Peng
 Date: 2023-05-08 15:36:21
-LastEditTime: 2023-05-08 16:35:16
+LastEditTime: 2023-05-08 22:00:33
 '''
 import re
 
@@ -33,7 +33,7 @@ def get_int(str):
 def get_uint(str):
 	return int(str)
 
-def parse_ply(f_name):
+def parse_ply(fname):
 	m = Mesh.Mesh()
 	state = 'init'
 	format_re = re.compile('format\\s+ascii\\s+1.0')
@@ -54,6 +54,76 @@ def parse_ply(f_name):
 	}
 	face_names = {
 		#'vertex_indices': (lambda f, l, m=m: f.set([m.getVertex(v) for v in l])) #real values of vertices
-		'vertex_indices': (lambda face, l, m=m: face.set_vertices(l))   # indices pf vertices                         #references to vertices
+		'vertex_indices': (lambda f, l, m=m: f.set_vertices(l))                            #references to vertices
 	}
-	
+	element_type_dict = {
+		'vertex' : (lambda: Mesh.Vertex(), vertex_names, lambda v, m=m: m.add_vertex(v)),
+		'face' : (lambda: Mesh.Face(), face_names, lambda f, m=m: m.add_face(f))
+	}
+	type_handles = {
+		'float' : get_float,
+		'double' : get_double,
+		'char' : get_char,
+		'uchar' : get_uchar,
+		'short' : get_short,
+		'ushort' : get_ushort,
+		'int' : get_int,
+		'uint' : get_uint
+	}
+	i = 0
+	j = 0
+	for line in open(fname, 'r'):
+		line = line.rstrip()
+		if state == 'init':
+			if line != 'ply':
+				raise RuntimeError('PLY: file is not a ply file')
+			state = 'format'
+		elif state == 'format':
+			if not format_re.match(line):
+				raise RuntimeError('PLY: unsupported ply format')
+			state = 'header'
+		elif state == 'header':
+			if comment_re.match(line):
+				#comment, do nothing
+				continue
+			match = element_re.match(line)
+			if match:
+				element_types.append((match.group('name'), int(match.group('num')), []))
+				continue
+			match = property_list_re.match(line)
+			if match:
+				element_types[-1][2].append((match.group('name'), 'list', match.group('itype'), match.group('etype')))
+				continue
+			match = property_re.match(line)
+			if match:
+				element_types[-1][2].append((match.group('name'), match.group('type')))
+				continue
+			if line == 'end_header':
+				state = 'body'
+				continue
+			raise RuntimeError('PLY: unknown header field')
+		elif state == 'body':
+			if j >= element_types[i][1]:
+				j = 0
+				i = i + 1
+			if i >= len(element_types):
+				raise RuntimeExeception('PLY: too much data in file')
+			line = line.split()
+			actions = element_type_dict[element_types[i][0]]
+			obj = actions[0]()
+			for property in element_types[i][2]:
+				x = None
+				if property[1] == 'list':
+					numelems = type_handles[property[2]](line[0])
+					line = line[1:]
+					x = []
+					for count in range(numelems):
+						x.append(type_handles[property[3]](line[0]))
+						line = line[1:]
+				else:
+					x = type_handles[property[1]](line[0])
+					line = line[1:]
+				actions[1][property[0]](obj, x)
+			actions[2](obj)
+			j = j + 1
+	return m
