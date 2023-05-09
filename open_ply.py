@@ -1,8 +1,9 @@
 '''
 Description: 
 Author: Bin Peng
+Email: ustb_pengbin@163.com
 Date: 2023-05-08 15:36:21
-LastEditTime: 2023-05-08 22:00:33
+LastEditTime: 2023-05-09 09:59:15
 '''
 import re
 
@@ -107,7 +108,7 @@ def parse_ply(fname):
 				j = 0
 				i = i + 1
 			if i >= len(element_types):
-				raise RuntimeExeception('PLY: too much data in file')
+				raise RuntimeError('PLY: too much data in file')
 			line = line.split()
 			actions = element_type_dict[element_types[i][0]]
 			obj = actions[0]()

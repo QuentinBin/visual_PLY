@@ -1,15 +1,16 @@
 '''
 Description: utils used for mesh
 Author: Bin Peng
+Email: ustb_pengbin@163.com
 Date: 2023-05-08 14:37:16
-LastEditTime: 2023-05-09 00:18:33
+LastEditTime: 2023-05-09 12:32:49
 '''
 from OpenGL.GL import *
 
 import Mesh
 
 
-def draw_Mesh(mesh:Mesh.Mesh):
+def draw_Mesh(mesh:Mesh.Mesh): 
 	'''
 	params
 	------
@@ -54,6 +55,7 @@ def draw_MeshGrid(mesh:Mesh.Mesh):
 	------
 	Mesh:class Mesh
 	'''
+	
 	for face in mesh.faces:
 		face:Mesh.Face
 		num_vertices = len(face.vertices())
@@ -64,3 +66,5 @@ def draw_MeshGrid(mesh:Mesh.Mesh):
 				# print(mesh.get_vertex(vertex_index).coords())
 				glVertex3d(*(mesh.get_vertex(vertex_index).coords()))
 			glEnd()
+
+

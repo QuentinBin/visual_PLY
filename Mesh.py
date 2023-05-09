@@ -1,10 +1,18 @@
 '''
 Description: mesh class
 Author: Bin Peng
+Email: ustb_pengbin@163.com
 Date: 2023-05-04 14:09:06
-LastEditTime: 2023-05-08 16:30:21
-'''
+LastEditTime: 2023-05-09 02:35:15
+'''  
 from OpenGL.GL import *
+# import openmesh 
+import numpy
+
+# a = openmesh.read_polymesh(r'monkey.ply')
+# print('顶点总数：', a.n_vertices())
+# print('面总数 :', a.n_faces())
+# print('边总数  :', a.n_edges())
 
 class Vertex(object):
 	def __init__(self) -> None:
