@@ -3,7 +3,7 @@ Description: utils used for mesh
 Author: Bin Peng
 Email: ustb_pengbin@163.com
 Date: 2023-05-08 14:37:16
-LastEditTime: 2023-05-09 12:32:49
+LastEditTime: 2023-05-09 21:53:23
 '''
 from OpenGL.GL import *
 
@@ -60,6 +60,8 @@ def draw_MeshGrid(mesh:Mesh.Mesh):
 		face:Mesh.Face
 		num_vertices = len(face.vertices())
 		if num_vertices >= 3:
+			glLineWidth(0.00005)
+			glColor3f(0,1,0)
 			glBegin(GL_LINE_LOOP)
 			for i in range(num_vertices):
 				vertex_index = face.vertices()[i]

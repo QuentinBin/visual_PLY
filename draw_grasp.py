@@ -3,7 +3,7 @@ Description: None
 Author: Bin Peng
 Email: ustb_pengbin@163.com
 Date: 2023-05-09 09:29:44
-LastEditTime: 2023-05-09 12:35:22
+LastEditTime: 2023-05-09 21:51:11
 '''
 import numpy as np
 import sys
@@ -24,136 +24,117 @@ mesh = None
 global cameraMatrix
 global obj_distance_scale
 cameraMatrix = matrices.getIdentity4x4()
-obj_distance_scale = 1/20
+obj_distance_scale = 1/30
 
 scaleFactor = 0.95
-rotateFactor = 0.05
-translateFactor = 0.05
+rotateFactor = 0.2
+translateFactor = 0.2
 
 g_lightPos = (1.0, 1.0, 1.0, 0.0)
 
 
 class draw_Grasp(object):
-    '''
-    params
-    ------
-    obj: mesh class
-    gripper_confi: [gripper depth:float, radius:float]
-    frame: str
-    '''
-    def __init__(self, obj:Mesh.Mesh, gripper_config=[0.1, 0.03], frame='object'):
-        self._obj = obj
-        self._frame = frame
-        self._gripper_config = gripper_config # max_depth, radius
-        self._grasp_axis = self.generate_grasp_axis()
-        self._grasp_center = self.find_grasp_center()
-        self._wrapped_faces_indices, self._unwrapped_faces_indices = [],[]
-        self._wrapped_faces_indices, self._unwrapped_faces_indices = self.split_Mesh()
-    
-    def generate_grasp_axis(self):
-        gripper_postion = np.random.random(3)-0.5
-        gripper_postion = gripper_postion / np.linalg.norm(gripper_postion)
-        return gripper_postion
-    
-    def find_grasp_center(self):
-        min_projected_distance = float('inf')
-        grasp_center = None
-        for vertex in self._obj.vertices:
-            vertex:Mesh.Vertex
-            projected_distance = np.array(vertex.coords()).dot(self._grasp_axis)
-            if projected_distance < min_projected_distance:
-                grasp_center = np.array(vertex.coords())
-                min_projected_distance = projected_distance
-        return grasp_center
+	'''
+	params
+	------
+	obj: mesh class
+	gripper_confi: [gripper depth:float, radius:float]
+	frame: str
+	'''
+	def __init__(self, obj:Mesh.Mesh, gripper_config=[0.1, 0.03], frame='object'):
+		self._obj = obj
+		self._frame = frame
+		self._gripper_config = gripper_config # max_depth, radius
+		self._grasp_axis = self.generate_grasp_axis()
+		self._grasp_center = self.find_grasp_center()
+		self._face_wrapped = np.zeros(len(self._obj.faces))
+		# print(self._face_wrapped.shape)
+		self._wrapped_faces_indices = self.split_Mesh()
+	
+	def generate_grasp_axis(self):
+		gripper_postion = np.random.random(3)-0.5
+		gripper_postion = gripper_postion / np.linalg.norm(gripper_postion)
+		return gripper_postion
+	
+	def find_grasp_center(self):
+		min_projected_distance = float('inf')
+		grasp_center = None
+		for vertex in self._obj.vertices:
+			vertex:Mesh.Vertex
+			projected_distance = np.array(vertex.coords()).dot(self._grasp_axis)
+			if projected_distance < min_projected_distance:
+				grasp_center = np.array(vertex.coords())
+				min_projected_distance = projected_distance
+		return grasp_center
 
-    
-    def split_Mesh(self):
-        grasp_depth = 0
-        [max_depth, radius] = self._gripper_config
-        while grasp_depth < max_depth:
-            wrapped_faces_indices =  []
-            unwrapped_faces_indices = []
-            for face in self._obj.faces:
-                unwrapped_faces_indices.append(face.vertices())
-                face:Mesh.Face
-                vertex_coords = self._obj.get_vertex(face.vertices()[0])
-                vertex_coords = np.array(vertex_coords.coords())
-                if abs((vertex_coords-self._grasp_center).dot(self._grasp_axis) - grasp_depth) < 0.0001:
-                    # check collision
-                    if np.linalg.norm(vertex_coords - (self._grasp_center+self._grasp_axis*grasp_depth)) > radius:
-                        return wrapped_faces_indices, unwrapped_faces_indices
-                elif (vertex_coords-self._grasp_center).dot(self._grasp_axis) < grasp_depth:
-                    wrapped_faces_indices.append(unwrapped_faces_indices.pop())
-                    
-            grasp_depth += max_depth/20
-        return wrapped_faces_indices, unwrapped_faces_indices
-    
-    def draw_MeshGrasp(self):
-        # draw unwraped
+	
+	def split_Mesh(self):
+		grasp_depth = 0
+		[max_depth, radius] = self._gripper_config
+		while grasp_depth < max_depth:
+			wrapped_faces_indices =  []
+			for index,face in enumerate(self._obj.faces):
+				# unwrapped_faces_indices.append(face.vertices())
+				face:Mesh.Face
+				vertex_coords = self._obj.get_vertex(face.vertices()[0])
+				vertex_coords = np.array(vertex_coords.coords())
+				if abs((vertex_coords-self._grasp_center).dot(self._grasp_axis) - grasp_depth) < 0.0001:
+					# check collision
+					if np.linalg.norm(vertex_coords - (self._grasp_center+self._grasp_axis*grasp_depth)) > radius:
+						return wrapped_faces_indices
+					else:
+						self._face_wrapped[index] = 1
+						wrapped_faces_indices.append(face.vertices())
+				elif (vertex_coords-self._grasp_center).dot(self._grasp_axis) < grasp_depth:
+					self._face_wrapped[index] = 1
+					wrapped_faces_indices.append(face.vertices())
+					
+			grasp_depth += max_depth/20
+		return wrapped_faces_indices
 
-        # print(self._unwrapped_faces_indices)
-        print(self._wrapped_faces_indices)
-        mode = None
-        for face_vertices in self._unwrapped_faces_indices:
-            glColor3f(1.0, 1.0, 1.0)
-            num_vertices = len(face_vertices)
-            if num_vertices == 3 and mode != GL_TRIANGLES:
-                if mode:
-                    glEnd() # end last gl
-                glBegin(GL_TRIANGLES)
-                mode = GL_TRIANGLES
-            elif num_vertices == 4 and mode != GL_QUADS:
-                if mode:
-                    glEnd()
-                glBegin(GL_QUADS)
-                mode = GL_QUADS
-            elif num_vertices > 4:
-                if mode:
-                    glEnd()
-                glBegin(GL_POLYGON)
-                mode = GL_POLYGON
-            elif num_vertices < 3:
-                raise RuntimeError('Face has <3 vertices')
-            for i in face_vertices:
-                vertex:Mesh.Vertex = self._obj.get_vertex(i)
-                if vertex.has_normal():
-                    glNormal3f(*(vertex.normal()))
-                glVertex3f(*(vertex.coords()))
-            if mode == GL_POLYGON:
-                glEnd()
-                mode = None
-        # draw wraped
+	
+	def draw_MeshGrasp(self):
+		# draw unwraped
 
-        for face_vertices in self._wrapped_faces_indices:
-            glColor3f(1.0, 0.0, 0.0)
-            num_vertices = len(face_vertices)
-            if num_vertices == 3 and mode != GL_TRIANGLES:
-                if mode:
-                    glEnd() # end last gl
-                glBegin(GL_TRIANGLES)
-                mode = GL_TRIANGLES
-            elif num_vertices == 4 and mode != GL_QUADS:
-                if mode:
-                    glEnd()
-                glBegin(GL_QUADS)
-                mode = GL_QUADS
-            elif num_vertices > 4:
-                if mode:
-                    glEnd()
-                glBegin(GL_POLYGON)
-                mode = GL_POLYGON
-            elif num_vertices < 3:
-                raise RuntimeError('Face has <3 vertices')
-            for i in face_vertices:
-                vertex:Mesh.Vertex = self._obj.get_vertex(i)
-                if vertex.has_normal():
-                    glNormal3f(*(vertex.normal()))
-                glVertex3f(*(vertex.coords()))
-            if mode == GL_POLYGON:
-                glEnd()
-                mode = None
-        if mode:
-            glEnd() # end final gl
+		# print(self._unwrapped_faces_indices)
+		# print(self._wrapped_faces_indices)
+		mode = None
+		for index,face in enumerate(self._obj.faces):
+			face:Mesh.Face
+			num_vertices = len(face.vertices())
+			if self._face_wrapped[index] == 1:
+				glColor3f(1.0, 0.0, 0.0)
+				# glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, (1.0, 0.0, 0.0, 1.0))
+			else:
+				glColor3f(1.0, 1.0, 1.0)
+				# glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, (1.0, 1.0, 1.0, 1.0))
+			if num_vertices == 3 and mode != GL_TRIANGLES:
+				if mode:
+					glEnd() # end last gl
+				glBegin(GL_TRIANGLES)
+				mode = GL_TRIANGLES
+			elif num_vertices == 4 and mode != GL_QUADS:
+				if mode:
+					glEnd()
+				glBegin(GL_QUADS)
+				mode = GL_QUADS
+			elif num_vertices > 4:
+				if mode:
+					glEnd()
+				glBegin(GL_POLYGON)
+				mode = GL_POLYGON
+			elif num_vertices < 3:
+				raise RuntimeError('Face has <3 vertices')
+			for i in face.vertices():
+				vertex:Mesh.Vertex = self._obj.get_vertex(i)
+				if vertex.has_normal():
+					glNormal3f(*(vertex.normal()))
+				glVertex3f(*(vertex.coords()))
+			if mode == GL_POLYGON:
+				glEnd()
+				mode = None
+		if mode:
+			glEnd() # end final gl
 
 
 
@@ -196,12 +177,17 @@ def resize(width, height):
 
 def display():
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+	
 	do_Camera()
 	glMatrixMode(GL_MODELVIEW)
-	
-	glColor3f(1, 1, 1)
-	global draw
+
+	# glMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, (.25, .25, .25, 1.0))
+	# glMaterial(GL_FRONT_AND_BACK, GL_SPECULAR, (1.0, 1.0, 1.0, .5))
+	# glMaterial(GL_FRONT_AND_BACK, GL_SHININESS, (128.0, ))
+
+	global draw, mesh
 	draw.draw_MeshGrasp()
+	mesh_utils.draw_MeshGrid(mesh)
 	glutSwapBuffers()
 
 
@@ -243,6 +229,7 @@ if __name__ == '__main__':
 	global draw
 	draw = draw_grasp.draw_Grasp(mesh)
 	draw.draw_MeshGrasp()
+	mesh_utils.draw_MeshGrid(mesh)
 	
 	glutInit([])
 	glutInitDisplayMode( GLUT_RGB  | GLUT_DOUBLE | GLUT_DEPTH)
@@ -252,6 +239,25 @@ if __name__ == '__main__':
 	glEnable(GL_NORMALIZE)       # Prevents scale from affecting color
 	glClearColor(0.1, 0.1, 0.2, 0.0) 
 
+	
+
+	# Set up two lights
+	# glEnable(GL_LIGHTING);														
+	# glLightModelfv(GL_LIGHT_MODEL_AMBIENT,(0.5,0.5,0.5,1.0))
+
+	# glEnable(GL_LIGHTING)
+	# BRIGHT4f = (1.0, 1.0, 1.0, 1.0)  # Color for Bright light
+	# DIM4f = (.2, .2, .2, 1.0)        # Color for Dim light
+	# glLightfv(GL_LIGHT0, GL_AMBIENT, BRIGHT4f)
+	# glLightfv(GL_LIGHT0, GL_DIFFUSE, BRIGHT4f)
+	# glLightfv(GL_LIGHT0, GL_POSITION, (10, 10, 10, 0))
+	# glEnable(GL_LIGHT0)
+	# glLightfv(GL_LIGHT1, GL_AMBIENT, DIM4f)
+	# glLightfv(GL_LIGHT1, GL_DIFFUSE, DIM4f)
+	# glLightfv(GL_LIGHT1, GL_POSITION, (-10, 10, -10, 0))
+	# glEnable(GL_LIGHT1)
+
+		
 	glutReshapeFunc(resize)
 	glutDisplayFunc(display)
 	glutIdleFunc(doIdle)      
