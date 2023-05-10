@@ -3,7 +3,7 @@ Description: None
 Author: Bin Peng
 Email: ustb_pengbin@163.com
 Date: 2023-05-08 21:43:47
-LastEditTime: 2023-05-09 21:40:11
+LastEditTime: 2023-05-10 18:09:20
 '''
 
 import sys
@@ -24,7 +24,7 @@ mesh = None
 global cameraMatrix
 global obj_distance_scale
 cameraMatrix = matrices.getIdentity4x4()
-obj_distance_scale = 1/10
+obj_distance_scale = 100#1/10
 
 scaleFactor = 0.95
 rotateFactor = 0.05
@@ -75,8 +75,9 @@ def display():
 	glMatrixMode(GL_MODELVIEW)
 	
 	glColor3f(1, 1, 1)
-	global draw
-	draw.draw_MeshGrasp()
+	mesh_utils.draw_Mesh(mesh)
+	# global draw
+	# draw.draw_MeshGrasp()
 	glutSwapBuffers()
 
 
