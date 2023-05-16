@@ -2,7 +2,7 @@
 Description: 
 Author: Bin Peng
 Date: 2023-05-16 21:19:33
-LastEditTime: 2023-05-16 23:45:46
+LastEditTime: 2023-05-17 00:36:20
 '''
 import numpy as np
 import pymeshlab
@@ -52,16 +52,18 @@ class draw_Wrapped(object):
 		self._gripper_depth = gripper_config[0]
 		self._vertex_num = self._obj.vertex_matrix().shape[0]
 		self._gripper_config = gripper_config # max_depth, radius
-		self._grasp_axis = self.generate_grasp_axis()
+		self._grasp_axis, self._x_axis, self._y_axis = self.generate_grasp_axis()
 		self._grasp_center = self.find_grasp_center()
-		self._grid_points = self.find_wrapped_region()
+		self._grid_points, self._grid_points_projected = self.find_wrapped_region()
 		print("points:",self._grid_points)
 		
 	
 	def generate_grasp_axis(self):
-		gripper_postion = np.random.random(3)-0.5
-		gripper_postion = gripper_postion / np.linalg.norm(gripper_postion)
-		return gripper_postion
+		grasp_axis = np.random.random(3)-0.5
+		grasp_axis = grasp_axis / np.linalg.norm(grasp_axis)
+		x_axis = np.cross(grasp_axis,np.array((1,0,0)))
+		y_axis = np.cross(grasp_axis,x_axis)
+		return grasp_axis, x_axis, y_axis
 	
 	def find_grasp_center(self):
 		min_projected_distance = float('inf')
@@ -112,9 +114,12 @@ class draw_Wrapped(object):
 					points_in_list.append(c.point_)
 					mlab.points3d(c.point_[0],c.point_[1],c.point_[2],scale_factor=0.003,color = (1,0,0))
 		points_in_array = np.zeros([len(points_in_list),3])
+		points_in_array_projectd = np.zeros([len(points_in_list),2])
 		for i in range(len(points_in_list)):
 			points_in_array[i,:] = points_in_list[i]
-		return points_in_array
+			points_in_array_projectd[i,0] = points_in_array[i,:].dot(self._x_axis)
+			points_in_array_projectd[i,1] = points_in_array[i,:].dot(self._y_axis)
+		return points_in_array, points_in_array_projectd
 	
 	
 				
@@ -138,11 +143,16 @@ if __name__ == '__main__':
 	# draw grid points
 	mlab.points3d(draw._grasp_center[0],draw._grasp_center[1],draw._grasp_center[2],scale_factor=0.005)
 	# draw trimesh
-	tri = Delaunay(draw._grid_points)
+	tri = Delaunay(draw._grid_points_projected)
 	tri_index_matrix = tri.simplices
 	for i in range(tri_index_matrix.shape[0]):
 		x1,y1,z1 = draw._grid_points[tri_index_matrix[i,0],0], draw._grid_points[tri_index_matrix[i,0],1], draw._grid_points[tri_index_matrix[i,0],2]
 		x2,y2,z2 = draw._grid_points[tri_index_matrix[i,1],0], draw._grid_points[tri_index_matrix[i,1],1], draw._grid_points[tri_index_matrix[i,1],2]
 		x3,y3,z3 = draw._grid_points[tri_index_matrix[i,2],0], draw._grid_points[tri_index_matrix[i,2],1], draw._grid_points[tri_index_matrix[i,2],2]
-		mlab.plot3d((x1,x2,x3),(y1,y2,y3),(z1,z2,z3),tube_radius = 0.002 ,color = (1,0,0))
+		# dist1 = linalg.norm(draw._grid_points[tri_index_matrix[i,0],:]-draw._grid_points[tri_index_matrix[i,1],:])
+		# dist2 = linalg.norm(draw._grid_points[tri_index_matrix[i,0],:]-draw._grid_points[tri_index_matrix[i,2],:])
+		# dist3 = linalg.norm(draw._grid_points[tri_index_matrix[i,1],:]-draw._grid_points[tri_index_matrix[i,2],:])
+		mlab.plot3d((x1,x2),(y1,y2),(z1,z2),tube_radius=0.0003,tube_sides=6,color = (0,0,1))
+		mlab.plot3d((x1,x3),(y1,y3),(z1,z3),tube_radius=0.0003,tube_sides=6,color = (0,0,1))
+		mlab.plot3d((x2,x3),(y2,y3),(z2,z3),tube_radius=0.0003,tube_sides=6,color = (0,0,1))
 	mlab.show()
