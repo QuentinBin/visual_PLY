@@ -2,7 +2,7 @@
 Description: 
 Author: Bin Peng
 Date: 2023-05-16 21:19:33
-LastEditTime: 2023-05-17 00:36:20
+LastEditTime: 2023-05-17 10:59:06
 '''
 import numpy as np
 import pymeshlab
@@ -17,21 +17,17 @@ from dexnet.grasping import GraspableObject3D, CylinderPoint3D, ParallelJawPtGra
 
 
 
-def load_mesh(path):
+def load_mesh(obj_path):
 	# create a new MeshSet
 	ms = pymeshlab.MeshSet()
 
 	# load a new mesh in the MeshSet, and sets it as current mesh
 	# the path of the mesh can be absolute or relative
-	ms.load_new_mesh(path)
-
-	# print("load mesh numbers:",len(ms))  # now ms contains 1 mesh
-	
-	# print("mesh names:", path)
-
+	ms.load_new_mesh(obj_path)
 	ms.set_current_mesh(0)
 
-	# print("vertex number:", ms.current_mesh().vertex_number())
+	# ms.load_new_mesh(obj_path)
+	# ms.set_current_mesh(1)
 
 	return ms
 
@@ -59,7 +55,8 @@ class draw_Wrapped(object):
 		
 	
 	def generate_grasp_axis(self):
-		grasp_axis = np.random.random(3)-0.5
+		# grasp_axis = np.random.random(3)-0.5
+		grasp_axis = np.array([ 0.81495785,-0.46735781,-0.34266656])
 		grasp_axis = grasp_axis / np.linalg.norm(grasp_axis)
 		x_axis = np.cross(grasp_axis,np.array((1,0,0)))
 		y_axis = np.cross(grasp_axis,x_axis)
@@ -125,20 +122,40 @@ class draw_Wrapped(object):
 				
 
 if __name__ == '__main__':
-	ply_path = "/home/peng/桌面/visual_ply/mayavi_draw/simed_banana.ply"
-	sdf_path = "/home/peng/桌面/visual_ply/mayavi_draw/nontextured.sdf"
-	obj_path = "/home/peng/桌面/visual_ply/mayavi_draw/nontextured.obj"
+	ply_path = "/home/pengbin/桌面/visual_PLY/mayavi_draw/simed_banana.ply"#/home/pengbin/桌面/visual_PLY/mayavi_draw/simed_banana.ply
+	gripper_path = "/home/pengbin/桌面/visual_PLY/mayavi_draw/gripper_scaled.ply"#/home/pengbin/桌面/visual_PLY/gripper_3Dmodels/gripper_banana.ply
+	gripper_save_path = "/home/pengbin/桌面/visual_PLY/mayavi_draw/gripper_banana.ply"
+	sdf_path = "/home/pengbin/桌面/visual_PLY/mayavi_draw/nontextured.sdf"
+	obj_path = "/home/pengbin/桌面/visual_PLY/mayavi_draw/nontextured.obj"
 	of = ObjFile(obj_path)
 	sf = SdfFile(sdf_path)
 	obj = GraspableObject3D(sf.read(), of.read())
 	
-	ms = load_mesh(ply_path)
-	mesh = ms.current_mesh()
-	# print(mesh.vertex_matrix())
-	draw = draw_Wrapped(mesh, obj)
-	print(draw._grasp_center)
+	obj_meshset = load_mesh(ply_path)
+	gripper_meshset = load_mesh(gripper_path)
+	obj_mesh = obj_meshset.current_mesh()
+
 	
-	# mlab.pipeline.surface(mlab.pipeline.open(ply_path)) 
+
+	# gripper = ms.current_mesh(1)
+	# print(mesh.vertex_matrix())
+	draw = draw_Wrapped(obj_mesh, obj)
+	# print(draw._grasp_center)
+	print("grasp_axis",draw._grasp_axis)
+
+	# rotate gripper
+	y_angle = np.arctan2(draw._grasp_axis[0], draw._grasp_axis[2]) *180/np.pi
+	z_angle = np.arctan2(draw._grasp_axis[1], draw._grasp_axis[0])*180/np.pi
+	gripper_meshset.compute_matrix_from_rotation(rotaxis='Y axis', angle=y_angle)
+	gripper_meshset.compute_matrix_from_rotation(rotaxis='Z axis', angle=z_angle)
+	gripper_meshset.compute_matrix_from_translation(traslmethod='XYZ translation', 
+						 axisx=draw._grasp_center[0],
+						 axisy=draw._grasp_center[1],
+						 axisz=draw._grasp_center[2])
+	gripper_meshset.save_current_mesh(gripper_save_path, save_face_color=False)
+	
+	mlab.pipeline.surface(mlab.pipeline.open(ply_path)) 
+	mlab.pipeline.surface(mlab.pipeline.open(gripper_save_path)) 
 	
 	# draw grid points
 	mlab.points3d(draw._grasp_center[0],draw._grasp_center[1],draw._grasp_center[2],scale_factor=0.005)
