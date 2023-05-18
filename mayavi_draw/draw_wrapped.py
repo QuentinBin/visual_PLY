@@ -2,7 +2,7 @@
 Description: 
 Author: Bin Peng
 Date: 2023-05-16 21:19:33
-LastEditTime: 2023-05-17 17:07:11
+LastEditTime: 2023-05-18 23:13:41
 '''
 import numpy as np
 import pymeshlab
@@ -169,10 +169,10 @@ if __name__ == '__main__':
 	gripper_meshset.save_current_mesh(gripper_save_path, save_face_color=False)
 	
 	mlab.pipeline.surface(mlab.pipeline.open(ply_path)) 
-	mlab.pipeline.surface(mlab.pipeline.open(gripper_save_path)) 
+	# mlab.pipeline.surface(mlab.pipeline.open(gripper_save_path)) 
 	
 	# draw grid points
-	mlab.points3d(draw._grasp_center[0],draw._grasp_center[1],draw._grasp_center[2],scale_factor=0.005)
+	mlab.points3d(draw._grasp_center[0],draw._grasp_center[1],draw._grasp_center[2],scale_factor=0.005,color = (0,1,0))
 	# draw trimesh
 	tri = Delaunay(draw._grid_points_projected)
 	tri_index_matrix = tri.simplices
@@ -187,13 +187,13 @@ if __name__ == '__main__':
 		mlab.plot3d((x1,x3),(y1,y3),(z1,z3),tube_radius=0.0005,tube_sides=6,color = (0,0,1))
 		mlab.plot3d((x2,x3),(y2,y3),(z2,z3),tube_radius=0.0005,tube_sides=6,color = (0,0,1))
 
-	for i in range(draw._endpoints.shape[0]):
+	# for i in range(draw._endpoints.shape[0]):
 		# print("startpoints:",draw._startpoints)
 		# print("endpoints:",draw._endpoints)
-		# mlab.points3d(draw._startpoints[i,0],draw._startpoints[i,1],draw._startpoints[i,2],scale_factor=0.003,color = (0,1,0))
-		# mlab.points3d(draw._endpoints[i,0],draw._endpoints[i,1],draw._endpoints[i,2],scale_factor=0.003,color = (0,1,0))
-		mlab.plot3d((draw._startpoints[i,0],draw._endpoints[i,0]),
-	       				(draw._startpoints[i,1],draw._endpoints[i,1]),
-						(draw._startpoints[i,2],draw._endpoints[i,2]),
-						tube_radius=0.0001,tube_sides=6,color = (0,1,0))
+
+		
+		# mlab.plot3d((draw._startpoints[i,0],draw._endpoints[i,0]),
+	    #    				(draw._startpoints[i,1],draw._endpoints[i,1]),
+		# 				(draw._startpoints[i,2],draw._endpoints[i,2]),
+		# 				tube_radius=0.0001,tube_sides=6,color = (0,1,0))
 	mlab.show()
