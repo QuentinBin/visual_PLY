@@ -2,7 +2,7 @@
 Description: 
 Author: Bin Peng
 Date: 2023-05-16 21:19:33
-LastEditTime: 2023-05-25 21:09:46
+LastEditTime: 2023-05-26 10:36:26
 '''
 import numpy as np
 import pymeshlab
@@ -138,8 +138,8 @@ class draw_Wrapped(object):
 				
 
 if __name__ == '__main__':
-	show_gripper = False 
-	objname = "strawberry"
+	show_gripper = True 
+	objname = "goaf"
 	ply_path = "/home/pengbin/code/visual_PLY/mayavi_draw/model/"+objname+"/simed_"+objname+".ply"#/home/pengbin/桌面/visual_PLY/mayavi_draw/simed_banana.ply
 	gripper_path = "/home/pengbin/code/visual_PLY/mayavi_draw/gripper_scaled.ply"#/home/pengbin/桌面/visual_PLY/gripper_3Dmodels/gripper_banana.ply
 	gripper_save_path = "/home/pengbin/code/visual_PLY/mayavi_draw/model/"+objname+"/gripper_"+objname+".ply"
